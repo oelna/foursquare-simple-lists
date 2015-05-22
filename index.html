@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Foursquare Simple Lists</title>
+
+	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+
+	<link rel="stylesheet" href="http://yui.yahooapis.com/3.13.0/build/cssreset/cssreset-min.css" />
+	<style>
+		* {
+			box-sizing: border-box;
+		}
+
+		html {
+			font: 145%/1.5 'Helvetica Neue', Helvetica, Verdana, Arial, sans-serif;
+			font-weight: 200;
+			background-color: #eae8e4;
+		}
+
+		#container {
+			margin: 0.5em 0.5em;
+		}
+
+		#container a {
+			color: #f94877;
+			text-decoration: none;
+		}
+
+		#container h1 {
+			padding-bottom: 0.3em;
+			border-bottom: 1px solid rgba(0,0,0,0.25);
+			margin-bottom: 0.45em;
+		}
+
+		#friends, #venues, #lists {
+			background: #fff;
+			padding: 0.5em 1em;
+			margin-bottom: 0.5em;
+		}
+
+		#venues, #lists {
+			border-radius: 3px;
+			box-shadow: rgba(0,0,0,0.25) 0 1px 3px 0;
+		}
+
+		#venues ul:empty::before {
+			content: 'No list selected';
+			color: rgba(0,0,0,0.25);
+		}
+
+		#lists li.empty {
+			color: rgba(0,0,0,0.25);
+		}
+
+		#friends h1 {
+			border-color: rgba(255,255,255,0.25);
+		}
+
+		#friends li {
+			cursor: pointer;
+		}
+
+		#friends {
+			background: #0732a2;
+			color: #fff;
+		}
+
+		#friends img {
+			width: 18px;
+			height: 18px;
+			vertical-align: -0.1em;
+			margin-right: 0.35em;
+			border-radius: 0.15em;
+		}
+
+		#friends .you::after {
+			content: ' (you)';
+		}
+
+		#c {
+			clear: left;
+			margin-top: 10em;
+			text-align: center;
+			color: rgba(0,0,0,0.35);
+			font-size: 0.6em;
+			text-shadow: 0 1px 1px rgba(255,255,255,0.75);
+		}
+
+		#c a { color: rgba(0,0,0,0.35); }
+
+		.connect {
+			display: block;
+			color: #fff !important;
+			line-height: 1.4;
+		}
+
+		@media screen and (min-width: 42em) {
+			#container {
+				margin: 1em 0.5em;
+				overflow: hidden;
+			}
+
+			#friends, #venues, #lists {
+				float: left;
+				width: CALC(100% / 3 - 0.5em);
+				margin-right: 0.5em;
+			}
+		}
+
+		@media screen and (min-width: 60em) {
+			#container {
+				margin: 2em 10%;
+			}
+
+			#friends, #venues, #lists {
+				width: CALC(100% / 3 - 2em);
+				margin-right: 2em;
+			}
+		}
+
+	</style>
+</head>
+
+<body>
+	<ul id="container">
+		<li id="friends">
+			<h1>People</h1>
+			<ul></ul>
+		</li>
+		<li id="lists">
+			<h1>Lists</h1>
+			<ul></ul>
+		</li>
+		<li id="venues">
+			<h1>Venues</h1>
+			<ul></ul>
+		</li>
+	</ul>
+
+	<p id="c">Made by <a href="https://github.com/oelna/foursquare-simple-lists/">Arno Richter</a> in 2015</p>
+
+	<script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+	<script>
+	jQuery(document).ready(function($) {
+
+		/* fill in your foursquare app credentials here */
+		client_id = 'ICGN0FBAHSXXXXXXXXXXXXXXXXXXXXXXXX1TNNJCHH';
+		redirect_uri = window.location.href; //or something you enter manually
+		api_version = '20150520'; //probably no need to modify
+
+		/* no need to modify after here */
+		uri = window.location.href;
+		search = '#access_token=';
+		start = uri.indexOf(search);
+		access_token = false;
+		user_id = 0;
+		lists_cache = {};
+		venues_cache = {};
+		user_display = 0; //the user id of whom lists are being displayed
+
+		if(!localStorage.getItem('foursquare_token')) {
+			if(start > 0) {
+				start = start + search.length
+				access_token = uri.slice(start);
+			}
+		} else {
+			access_token = localStorage.getItem('foursquare_token');
+		}
+
+
+		if(access_token) {
+			localStorage.setItem('foursquare_token', access_token);
+
+			$.ajax({
+				url:'https://api.foursquare.com/v2/users/self',
+				data: {
+					oauth_token: access_token,
+					m: 'foursquare',
+					v: api_version
+				},
+				success:function(user_data) {
+					user_id = user_data.response.user.id;
+					localStorage.setItem('foursquare_userid', user_id);
+
+					user_display = user_id; //set this to the initial user
+
+					var name = (user_data.response.user.firstName) ? user_data.response.user.firstName+' ' : '';
+					name += (user_data.response.user.lastName) ? user_data.response.user.lastName : '';
+
+					var photo = user_data.response.user.photo.prefix + '36x36' + user_data.response.user.photo.suffix;
+
+					$('#friends ul').append('<li data-index="" data-id="'+user_id+'" class="you"><img src="'+photo+'" alt="'+name+'" /> '+name+'</li>');
+
+					load_friends();
+					load_lists();
+				},
+				error: function(jqXHR, textStatus, errorThrown) {
+					console.error(errorThrown);
+				}
+			});
+		} else {
+			//print a login button
+
+			auth_url = 'https://foursquare.com/oauth2/authenticate?client_id=' + client_id + '&response_type=token&redirect_uri=' + redirect_uri;
+
+			$('#container').html('<li id="friends"><a href="'+auth_url+'" class="connect">Connect your Foursquare account</a></li>');
+		}
+
+		var load_friends = function(of_user) {
+			if(!of_user) var of_user = user_id;
+
+			$.ajax({
+				url:'https://api.foursquare.com/v2/users/'+user_id+'/friends',
+				data: {
+					oauth_token: access_token,
+					m: 'swarm',
+					v: api_version,
+					USER_ID: of_user
+				},
+				success:function(user_data) {
+					var friends = user_data.response.friends.items;
+
+					for(i in friends) {
+						var name = (friends[i].firstName) ? friends[i].firstName+' ' : '';
+						name += (friends[i].lastName) ? friends[i].lastName : '';
+
+						var photo = friends[i].photo.prefix + '36x36' + friends[i].photo.suffix;
+
+						$('#friends ul').append('<li data-index="'+i+'" data-id="'+friends[i].id+'"><img src="'+photo+'" alt="'+name+'" /> '+name+'</li>');
+					}
+
+				},
+				error: function(jqXHR, textStatus, errorThrown){
+					console.error(errorThrown);
+				}
+			});
+		}
+
+		var load_lists = function(of_user) {
+			if(!of_user) var of_user = user_id;
+
+			if(lists_cache['u'+of_user]) {
+				//use the cache
+				console.log('cached lists for user #'+of_user);
+
+				render_lists(lists_cache['u'+of_user]);
+
+			} else {
+				console.log('loaded lists live for user #'+of_user);
+
+				$.ajax({
+					url:'https://api.foursquare.com/v2/users/'+of_user+'/lists',
+					data: {
+						oauth_token: access_token,
+						m: 'foursquare',
+						v: api_version,
+						USER_ID: of_user,
+						group: 'created'
+					},
+					success:function(user_data) {
+
+						lists_cache['u'+of_user] = user_data.response.lists.items;
+
+						if(user_data.response.lists.count == 0) {
+							console.log('This user has no lists');
+
+							$('#lists ul').empty().append('<li data-url="" data-index="" data-id="" class="empty">No lists</li>');
+						} else {
+							render_lists(lists_cache['u'+of_user]);
+						}
+
+
+					},
+					error: function(jqXHR, textStatus, errorThrown) {
+						console.error(errorThrown);
+					}
+				});
+			}
+		}
+
+		var render_lists = function(lists) {
+
+			$('#lists ul').empty();
+			for(i in lists) {
+
+				$('#lists ul').append('<li data-url="" data-index="'+i+'" data-id="'+lists[i].id+'"><a href="https://foursquare.com/user/'+lists[i].user.id+'/list/'+lists[i].name+'">'+lists[i].name+'</a></li>');
+			}
+		}
+
+		var load_venues = function(list_index, of_user) {
+			if(!of_user) var of_user = user_id;
+
+			var list_id = lists_cache['u'+of_user][list_index].id;
+
+			if(venues_cache['u'+of_user] && venues_cache['u'+of_user][list_index]) {
+				//use the cache
+				console.log('cached venues for #'+of_user);
+
+				render_venues(venues_cache['u'+of_user][list_index]);
+
+			} else {
+				console.log('loaded venues live for #'+of_user);
+				$.ajax({
+					url:'https://api.foursquare.com/v2/lists/'+list_id,
+					data: {
+						oauth_token: access_token,
+						m: 'foursquare',
+						v: api_version
+					},
+					success:function(user_data) {
+						if(!venues_cache['u'+of_user]) venues_cache['u'+of_user] = [];
+						venues_cache['u'+of_user][list_index] = user_data.response.list.listItems.items;
+
+						render_venues(venues_cache['u'+of_user][list_index]);
+					},
+					error: function(jqXHR, textStatus, errorThrown){
+						console.error(errorThrown);
+					}
+				});
+			}
+		}
+
+		var render_venues = function(venues) {
+			$('#venues ul').empty();
+
+			for(i in venues) {
+				if(venues[i].type == 'tip') continue; //ignore items that are not venues
+
+				var venue = venues[i].venue;
+
+				$('#venues ul').append('<li data-index="'+i+'" data-id="'+venue.id+'"><a href="https://foursquare.com/v/'+venue.id+'">'+venue.name+'</a></li>');
+			}
+		}
+
+		$(document).on('click', '#friends li', function() {
+			user_display = $(this).data('id');
+
+			$('#venues ul').empty();
+			load_lists($(this).data('id'));
+		});
+
+		$(document).on('click', '#lists a', function(e) {
+			e.preventDefault();
+
+			if($(this).parent().data('index') === false) return;
+			load_venues($(this).parent().data('index'), user_display);
+		});
+	});
+	</script>
+</body>
+</html>
