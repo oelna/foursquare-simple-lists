@@ -14,6 +14,8 @@ Sometimes I'd like to send people a URL to one of my (or my friends'!) Foursquar
 
 Once you have looged in, the app shows a list of you and your friends. You can browse your own and your friends lists from here. If needed, you can also view the venues (and get their URLs) that are on a list. On iOS you can copy the URLs of the lists by pressing and holding on one of the links. A menu offerns the option to copy to clipboard. After that, share whichever way you like.
 
+Update: I added the option to render venue links as native URLs that open in the Foursquare app, instead of regular links to the website. If this is what you want, check the option at the bottom of the page. It is saved in localstorage, so it should stick. The only issue is, if venues are visible at the time the option is checked, the links are not re-rendered. Instead, tap the list a second time to refresh.
+
 ## Support my work
 
 If you'd like to support what I do, please consider tipping.  
