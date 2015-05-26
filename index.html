@@ -80,6 +80,7 @@
 		#c {
 			clear: left;
 			margin-top: 10em;
+			margin-bottom: 0.5em;
 			text-align: center;
 			color: rgba(0,0,0,0.35);
 			font-size: 0.6em;
@@ -137,7 +138,7 @@
 		</li>
 	</ul>
 
-	<p id="c">Made by <a href="https://github.com/oelna/foursquare-simple-lists/">Arno Richter</a> in 2015</p>
+	<p id="c">Made by <a href="https://github.com/oelna/foursquare-simple-lists/">Arno Richter</a> in 2015 &middot; Open venues in app <input type="checkbox" id="nativeurls" title="Open venues in the Foursquare app instead of the website?" /></p>
 
 	<script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
 	<script>
@@ -156,7 +157,16 @@
 		user_id = 0;
 		lists_cache = {};
 		venues_cache = {};
+		display_native_urls = false;
 		user_display = 0; //the user id of whom lists are being displayed
+
+		if(!localStorage.getItem('foursquare_nativeurls')) {
+			display_native_urls = false;
+		} else {
+			display_native_urls = localStorage.getItem('foursquare_nativeurls');
+
+			if(display_native_urls == 'true') $('#nativeurls').prop('checked', true);
+		}
 
 		if(!localStorage.getItem('foursquare_token')) {
 			if(start > 0) {
@@ -328,7 +338,9 @@
 
 				var venue = venues[i].venue;
 
-				$('#venues ul').append('<li data-index="'+i+'" data-id="'+venue.id+'"><a href="https://foursquare.com/v/'+venue.id+'">'+venue.name+'</a></li>');
+				var venue_url = (display_native_urls) ? 'foursquare://venues/'+venue.id : 'https://foursquare.com/v/'+venue.id;
+
+				$('#venues ul').append('<li data-index="'+i+'" data-id="'+venue.id+'"><a href="'+venue_url+'">'+venue.name+'</a></li>');
 			}
 		}
 
@@ -344,6 +356,12 @@
 
 			if($(this).parent().data('index') === false) return;
 			load_venues($(this).parent().data('index'), user_display);
+		});
+
+		$(document).on('click', '#nativeurls', function(e) {
+			var checked = $(this).is(':checked');
+			localStorage.setItem('foursquare_nativeurls', checked);
+			display_native_urls = checked;
 		});
 	});
 	</script>
