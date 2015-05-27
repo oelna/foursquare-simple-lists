@@ -3,6 +3,14 @@ A little helper webapp that allows you to quickly view your foursquare lists and
 
 Sometimes I'd like to send people a URL to one of my (or my friends'!) Foursquare lists, so they can have a look. As this is currently (as of May 2015) not possible inside the iOS app, and the 4SQ web interface is comparably slow and clumsy, I made this tool.
 
+## Demo
+
+You can preview how this app is going to look on your server, or simply use it as is. No personal data from the API is ever stored on the server, as you can see when you check the code.
+
+[http://foursquarelists.arnorichter.de/](http://foursquarelists.arnorichter.de/)
+
+I'm also referencing the [blog post](http://oelna.de/blog/4105) I wrote about this, in case I do more follow-up there.
+
 ## Installation
 
 - go to Foursquare and register the app using the URL you put the `index.html` file:  [foursquare.com/developers/apps](https://foursquare.com/developers/apps)
