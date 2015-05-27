@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+	<meta charset="utf-8" />
 	<title>Foursquare Simple Lists</title>
 
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
@@ -55,17 +56,27 @@
 			color: rgba(0,0,0,0.25);
 		}
 
+		#lists a.active {
+			text-decoration: underline;
+		}
+
+		#friends {
+			background: #0732a2;
+			color: #fff;
+		}
+
 		#friends h1 {
 			border-color: rgba(255,255,255,0.25);
 		}
 
 		#friends li {
 			cursor: pointer;
+			opacity: 0.4;
 		}
 
-		#friends {
-			background: #0732a2;
+		#friends li.active {
 			color: #fff;
+			opacity: 1;
 		}
 
 		#friends img {
@@ -141,7 +152,7 @@
 		</li>
 	</ul>
 
-	<p id="c">Made by <a href="https://github.com/oelna/foursquare-simple-lists/">Arno Richter</a> in 2015 &middot; Open venues in app <input type="checkbox" id="nativeurls" title="Open venues in the Foursquare app instead of the website?" /></p>
+	<p id="c">By <a href="https://github.com/oelna/foursquare-simple-lists/">Arno Richter</a> in 2015 &middot; Open venues in app <input type="checkbox" id="nativeurls" title="Open venues in the Foursquare app instead of the website?" /></p>
 
 	<script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
 	<script>
@@ -175,6 +186,7 @@
 			if(start > 0) {
 				start = start + search.length
 				access_token = uri.slice(start);
+				window.location.hash = ''; //remove the access token from the url for cosmetic reasons
 			}
 		} else {
 			access_token = localStorage.getItem('foursquare_token');
@@ -193,7 +205,6 @@
 				},
 				success:function(user_data) {
 					user_id = user_data.response.user.id;
-					localStorage.setItem('foursquare_userid', user_id);
 
 					user_display = user_id; //set this to the initial user
 
@@ -202,13 +213,19 @@
 
 					var photo = user_data.response.user.photo.prefix + '36x36' + user_data.response.user.photo.suffix;
 
-					$('#friends ul').append('<li data-index="" data-id="'+user_id+'" class="you"><img src="'+photo+'" alt="'+name+'" /> '+name+'</li>');
+					$('#friends ul').append('<li data-index="" data-id="'+user_id+'" class="you active"><img src="'+photo+'" alt="'+name+'" /> '+name+'</li>');
 
 					load_friends();
 					load_lists();
 				},
 				error: function(jqXHR, textStatus, errorThrown) {
 					console.error(errorThrown);
+
+					if(errorThrown == 'Unauthorized') {
+						console.log('User has revoked API access to their profile');
+						localStorage.removeItem('foursquare_token');
+						document.location.reload();
+					}
 				}
 			});
 		} else {
@@ -341,7 +358,7 @@
 
 				var venue = venues[i].venue;
 
-				var venue_url = (display_native_urls) ? 'foursquare://venues/'+venue.id : 'https://foursquare.com/v/'+venue.id;
+				var venue_url = (display_native_urls) ? 'foursquare://venues/'+venue.id : 'https://foursquare.com/v/'+venue.id+'?ref='+client_id;
 
 				$('#venues ul').append('<li data-index="'+i+'" data-id="'+venue.id+'"><a href="'+venue_url+'">'+venue.name+'</a></li>');
 			}
@@ -350,12 +367,18 @@
 		$(document).on('click', '#friends li', function() {
 			user_display = $(this).data('id');
 
+			$('#friends li').removeClass('active');
+			$(this).addClass('active');
+
 			$('#venues ul').empty();
 			load_lists($(this).data('id'));
 		});
 
 		$(document).on('click', '#lists a', function(e) {
 			e.preventDefault();
+
+			$('#lists a').removeClass('active');
+			$(this).addClass('active');
 
 			if($(this).parent().data('index') === false) return;
 			load_venues($(this).parent().data('index'), user_display);
